@@ -3,7 +3,7 @@ variable "subscription_id" {
   default     = "SUBSCRIPTION_ID"
 }
 variable "client_id" {
-  description = "Azure client id"
+  description = "Azure client ID"
   default     = "CLIENT_ID"
 }
 variable "client_secret" {
@@ -11,7 +11,7 @@ variable "client_secret" {
   default     = "CLIENT_SECRET"
 }
 variable "tenant_id" {
-  description = "Azure tenant id"
+  description = "Azure tenant ID"
   default     = "TENANT_ID"
 }
 
