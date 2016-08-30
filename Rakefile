@@ -1,5 +1,6 @@
 task :environment do
   errors = []
+  file = File.open('.env', 'w')
   %w(
     TF_VAR_subscription_id
     TF_VAR_client_id
@@ -12,11 +13,13 @@ task :environment do
     ARM_ACCESS_KEY
   ).each do |name|
     errors << name if ENV[name].nil?
+    file.puts("#{name}=#{ENV[name]}") unless ENV[name].nil?
   end
 
   if errors.any?
     abort "One or more environment variables are empty: #{errors.join(", ")}"
   end
+  file.close
 end
 
 task :configure => :environment do
@@ -24,28 +27,36 @@ task :configure => :environment do
   container_name = "terraform-state"
   key = "terraform-azure.terraform.tfstate"
   resource_group_name = "Terraform-WestUS"
-  sh %Q!terraform remote config -backend=azure -backend-config="storage_account_name=#{storage_account_name}" -backend-config="container_name=#{container_name}" -backend-config="key=#{key}" -backend-config="resource_group_name=#{resource_group_name}"!
+  sh %Q!docker run --rm --name terraform --env-file ${PWD}/.env -v ${PWD}:/terraform -w /terraform hashicorp/terraform:latest remote config -backend=azure -backend-config="storage_account_name=#{storage_account_name}" -backend-config="container_name=#{container_name}" -backend-config="key=#{key}" -backend-config="resource_group_name=#{resource_group_name}"!
 end
 
 task :pull => :configure do
-  sh "terraform remote pull"
+  sh "docker run --rm --name terraform --env-file ${PWD}/.env -v ${PWD}:/terraform -w /terraform hashicorp/terraform:latest remote pull"
 end
 
 task :push => :configure do
-  sh "terraform remote push"
+  sh "docker run --rm --name terraform --env-file ${PWD}/.env -v ${PWD}:/terraform -w /terraform hashicorp/terraform:latest remote push"
 end
 
 task :plan do
-  sh "terraform plan"
+  sh "docker run --rm --name terraform --env-file ${PWD}/.env -v ${PWD}:/terraform -w /terraform hashicorp/terraform:latest plan"
 end
 
 task :apply do
-  sh "terraform apply"
+  sh "docker run --rm --name terraform --env-file ${PWD}/.env -v ${PWD}:/terraform -w /terraform hashicorp/terraform:latest apply"
+end
+
+task :destroy do
+  sh "docker run --rm --name terraform --env-file ${PWD}/.env -v ${PWD}:/terraform -w /terraform hashicorp/terraform:latest destroy -force"
 end
 
 Rake::Task[:plan].enhance([:pull])
 
 Rake::Task[:apply].enhance([:pull]) do
+  Rake::Task[:push].invoke
+end
+
+Rake::Task[:destroy].enhance([:pull]) do
   Rake::Task[:push].invoke
 end
 
