@@ -1,34 +1,11 @@
 machine:
-  environment:
-    PATH: $HOME/.terraform:$PATH
-    TERRAFORM_VERSION: 0.7.2
-dependencies:
-  cache_directories:
-    - ~/.terraform
-  pre:
-    - |
-      mkdir -p $HOME/.terraform
-      if [ -z "$(ls -A $HOME/.terraform)" ]; then
-        cd $HOME/.terraform
-        curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-        unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-        rm terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-      fi
+  services:
+    - docker
 test:
-  pre:
-    - |
-      terraform remote config -backend=azure -backend-config="storage_account_name=changeworld4terraform" -backend-config="container_name=terraform-state" -backend-config="key=terraform-azure.terraform.tfstate" -backend-config="resource_group_name=Terraform-WestUS"
-      terraform remote pull
   override:
-    - terraform plan --refresh=false
-  post:
-    - terraform remote push
+    - rake
 deployment:
   production:
     branch: master
     commands:
-      - |
-        terraform remote config -backend=azure -backend-config="storage_account_name=changeworld4terraform" -backend-config="container_name=terraform-state" -backend-config="key=terraform-azure.terraform.tfstate" -backend-config="resource_group_name=Terraform-WestUS"
-        terraform remote pull
-        terraform apply
-        terraform remote push
+      - rake apply
