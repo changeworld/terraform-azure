@@ -6,6 +6,9 @@ task :environment do
     TF_VAR_client_id
     TF_VAR_client_secret
     TF_VAR_tenant_id
+    TF_VAR_default_user
+    TF_VAR_default_password
+    TF_VAR_account_count
     ARM_SUBSCRIPTION_ID
     ARM_CLIENT_ID
     ARM_CLIENT_SECRET
