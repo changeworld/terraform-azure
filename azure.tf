@@ -33,26 +33,26 @@ resource "azurerm_subnet" "test" {
 }
 
 resource "azurerm_public_ip" "test" {
-  name                         = "TerraformIP"
+  count                        = 2
+  name                         = "${format("TerraformIP%02d", count.index + 1)}"
   location                     = "West US"
   resource_group_name          = "${azurerm_resource_group.test.name}"
   public_ip_address_allocation = "static"
-  domain_name_label            = "azure2docker"
   tags {
     environment = "test"
   }
 }
 
 resource "azurerm_network_interface" "test" {
-  name                = "TestTerraformNetworkIF"
+  count               = 2
+  name                = "${format("TestTerraformNetworkIF%02d", count.index + 1)}"
   location            = "West US"
   resource_group_name = "${azurerm_resource_group.test.name}"
-
   ip_configuration {
     name                          = "TestTerraformConfiguration"
     subnet_id                     = "${azurerm_subnet.test.id}"
     private_ip_address_allocation = "dynamic"
-    public_ip_address_id          = "${azurerm_public_ip.test.id}"
+    public_ip_address_id          = "${element(azurerm_public_ip.test.*.id, count.index)}"
   }
 }
 
@@ -67,17 +67,19 @@ resource "azurerm_storage_account" "test" {
 }
 
 resource "azurerm_storage_container" "test" {
-  name                  = "test4terraformcontainer"
+  count                 = 2
+  name                  = "${format("test4terraformcontainer%02d", count.index + 1)}"
   resource_group_name   = "${azurerm_resource_group.test.name}"
   storage_account_name  = "${azurerm_storage_account.test.name}"
   container_access_type = "private"
 }
 
 resource "azurerm_virtual_machine" "test" {
-  name                  = "TestTerraformVirtualMachine"
+  count                 = 2
+  name                  = "${format("TestTerraformVirtualMachine%02d", count.index + 1)}"
   location              = "West US"
   resource_group_name   = "${azurerm_resource_group.test.name}"
-  network_interface_ids = ["${azurerm_network_interface.test.id}"]
+  network_interface_ids = ["${element(azurerm_network_interface.test.*.id, count.index)}"]
   vm_size               = "Standard_A0"
   storage_image_reference {
     publisher = "CoreOS"
@@ -87,7 +89,7 @@ resource "azurerm_virtual_machine" "test" {
   }
   storage_os_disk {
     name          = "TestTerraformStorageOSDisk"
-    vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+    vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${element(azurerm_storage_container.test.*.name, count.index)}/myosdisk1.vhd"
     caching       = "ReadWrite"
     create_option = "FromImage"
   }
@@ -104,7 +106,7 @@ resource "azurerm_virtual_machine" "test" {
       type     = "ssh"
       user     = "${var.default_user}"
       password = "${var.default_password}"
-      host     = "${azurerm_public_ip.test.ip_address}"
+      host     = "${element(azurerm_public_ip.test.*.ip_address, count.index)}"
     }
     inline = [
       "echo ${var.default_password} | sudo -S docker run hello-world"
